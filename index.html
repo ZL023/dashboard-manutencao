@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard de Manutenção</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<div id="login">
+  <h2>🔐 Acesso Restrito</h2>
+  <input type="password" id="senha" placeholder="Digite a senha">
+  <button onclick="login()">Entrar</button>
+  <p id="erro"></p>
+</div>
+
+<div id="dashboard" style="display:none">
+  <h1>✈️ Diagonal de Manutenção</h1>
+
+  <section class="grafico">
+    <h2>📈 Horas de voo – Últimos 30 dias</h2>
+    <canvas id="graficoHoras"></canvas>
+  </section>
+
+  <section id="cards" class="cards"></section>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
