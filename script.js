@@ -2,8 +2,8 @@
 const SENHA_FIXA = "manutencao123";
 
 // CSVs publicados do Google Sheets
-const CSV_HISTORICO = "URL_DO_CSV_HISTORICO_AQUI";
-const CSV_STATUS = "URL_DO_CSV_STATUS_AQUI";
+const CSV_HISTORICO = "https://docs.google.com/spreadsheets/d/1lCi9kySBYTIT51zTud04TjedX-mfK9FrXfVD9ch4GUY/gviz/tq?tqx=out:csv&sheet=Historico_Horas";
+const CSV_STATUS = "https://docs.google.com/spreadsheets/d/1lCi9kySBYTIT51zTud04TjedX-mfK9FrXfVD9ch4GUY/gviz/tq?tqx=out:csv&sheet=Aeronaves";
 
 // =================================================
 
@@ -109,3 +109,4 @@ function atualizarCards(textoCSV) {
     document.getElementById(`status-${id}`).innerText = status;
   });
 }
+
