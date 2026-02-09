@@ -1,10 +1,8 @@
 // ================= CONFIGURAÇÕES =================
 const SENHA_FIXA = "manutencao123";
 
-// CSVs publicados do Google Sheets
 const CSV_HISTORICO = "https://docs.google.com/spreadsheets/d/1lCi9kySBYTIT51zTud04TjedX-mfK9FrXfVD9ch4GUY/gviz/tq?tqx=out:csv&sheet=Historico_Horas";
-const CSV_STATUS = "https://docs.google.com/spreadsheets/d/1lCi9kySBYTIT51zTud04TjedX-mfK9FrXfVD9ch4GUY/gviz/tq?tqx=out:csv&sheet=Aeronaves";
-
+const CSV_STATUS    = "https://docs.google.com/spreadsheets/d/1lCi9kySBYTIT51zTud04TjedX-mfK9FrXfVD9ch4GUY/gviz/tq?tqx=out:csv&sheet=Aeronaves";
 // =================================================
 
 // LOGIN
@@ -29,84 +27,79 @@ async function carregarDados() {
     gerarGrafico(hist);
     atualizarCards(status);
 
-  } catch (erro) {
-    console.error("Erro ao carregar dados:", erro);
+  } catch (e) {
+    console.error("Erro ao carregar dados:", e);
   }
 }
 
 // ================= GRÁFICO =================
-function gerarGrafico(textoCSV) {
-  const linhas = textoCSV.trim().split("\n");
-  const separador = linhas[0].includes(";") ? ";" : ",";
+function gerarGrafico(csv) {
+  const linhas = csv.trim().split("\n");
+  const sep = linhas[0].includes(";") ? ";" : ",";
 
-  const cabecalho = linhas[0].split(separador).map(h => h.trim());
   const dados = linhas.slice(1);
+  const labels = dados.map(l => l.split(sep)[0]);
 
-  const labels = dados.map(l => l.split(separador)[0]);
-
+  const cabecalho = linhas[0].split(sep).slice(1);
   const datasets = [];
 
-  for (let i = 1; i < cabecalho.length; i++) {
+  cabecalho.forEach((nome, idx) => {
     const valores = dados.map(l => {
-      const v = l.split(separador)[i];
+      const v = l.split(sep)[idx + 1];
       if (!v) return null;
       return parseFloat(v.replace(",", "."));
     });
 
     if (valores.some(v => v !== null && !isNaN(v))) {
       datasets.push({
-        label: cabecalho[i],
+        label: nome.trim(),
         data: valores,
         tension: 0.3
       });
     }
-  }
+  });
 
-  const canvas = document.getElementById("graficoHoras");
-  const ctx = canvas.getContext("2d");
+  const ctx = document.getElementById("graficoHoras").getContext("2d");
 
-  if (window.grafico) {
-    window.grafico.destroy();
-  }
+  if (window.grafico) window.grafico.destroy();
 
   window.grafico = new Chart(ctx, {
     type: "line",
-    data: {
-      labels,
-      datasets
-    },
+    data: { labels, datasets },
     options: {
       responsive: true,
       plugins: {
-        legend: {
-          position: "bottom"
-        }
+        legend: { position: "bottom" }
       }
     }
   });
 }
 
 // ================= CARDS =================
-function atualizarCards(textoCSV) {
-  const linhas = textoCSV.trim().split("\n");
-  const separador = linhas[0].includes(";") ? ";" : ",";
+function atualizarCards(csv) {
+  const linhas = csv.trim().split("\n");
+  const sep = linhas[0].includes(";") ? ";" : ",";
 
-  const dados = linhas.slice(1);
+  linhas.slice(1).forEach(linha => {
+    const c = linha.split(sep);
 
-  dados.forEach(linha => {
-    const col = linha.split(separador);
+    const id = c[0].replace(/[^A-Za-z0-9]/g, "");
+    const horasAtuais = parseFloat(c[2].replace(",", "."));
+    const proxima = parseFloat(c[3].replace(",", "."));
+    const status = c[4];
 
-    const id = col[0];
-    const horasAtuais = parseFloat(col[2].replace(",", "."));
-    const proximaManut = parseFloat(col[3].replace(",", "."));
-    const status = col[4];
+    const restantes = proxima - horasAtuais;
 
-    const restantes = proximaManut - horasAtuais;
+    const horasEl = document.getElementById(`horas-${id}`);
+    const statusEl = document.getElementById(`status-${id}`);
 
-    document.getElementById(`horas-${id}`).innerText =
-      isNaN(restantes) ? "--" : restantes.toFixed(1) + " h";
+    if (!horasEl || !statusEl) {
+      console.warn(`Card não encontrado para ${id}`);
+      return;
+    }
 
-    document.getElementById(`status-${id}`).innerText = status;
+    horasEl.innerText = isNaN(restantes) ? "--" : restantes.toFixed(1) + " h";
+    statusEl.innerText = status;
   });
 }
 
