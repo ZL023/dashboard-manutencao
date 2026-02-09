@@ -7,72 +7,8 @@
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f4f6f8;
-      margin: 0;
-    }
-
-    h1 {
-      text-align: center;
-      margin: 20px 0;
-    }
-
-    /* LOGIN */
-    #login {
-      height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
-
-    .login-box {
-      background: white;
-      padding: 30px;
-      border-radius: 8px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.15);
-      text-align: center;
-    }
-
-    input {
-      padding: 8px;
-      width: 200px;
-      margin-bottom: 10px;
-    }
-
-    button {
-      padding: 8px 15px;
-      cursor: pointer;
-    }
-
-    /* DASHBOARD */
-    #dashboard {
-      display: none;
-      padding: 20px;
-    }
-
-    .cards {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 15px;
-      margin-bottom: 30px;
-    }
-
-    .card {
-      background: white;
-      padding: 15px;
-      border-radius: 8px;
-      box-shadow: 0 0 5px rgba(0,0,0,0.15);
-    }
-
-    .grafico-container {
-      background: white;
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 0 5px rgba(0,0,0,0.15);
-    }
-  </style>
+  <!-- CSS -->
+  <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
@@ -82,7 +18,6 @@
   <div class="login-box">
     <h2>Acesso Restrito</h2>
     <input type="password" id="senha" placeholder="Senha">
-    <br>
     <button onclick="verificarSenha()">Entrar</button>
   </div>
 </div>
@@ -93,29 +28,29 @@
 
   <!-- CARDS -->
   <div class="cards">
-      <div class="card">
-        <h3>Aeronave PT-KNJ</h3>
-        <p>Horas restantes: <strong id="horas-PTKNJ">--</strong></p>
-        <p>Status: <strong id="status-PTKNJ">--</strong></p>
-      </div>
+    <div class="card">
+      <h3>PT-KNJ</h3>
+      <p>Horas restantes: <strong id="horas-PTKNJ">--</strong></p>
+      <p>Status: <strong id="status-PTKNJ">--</strong></p>
+    </div>
 
-      <div class="card">
-        <h3>Aeronave PT-KNA</h3>
-        <p>Horas restantes: <strong id="horas-PTKNA">--</strong></p>
-        <p>Status: <strong id="status-PTKNA">--</strong></p>
-      </div>
+    <div class="card">
+      <h3>PT-KNA</h3>
+      <p>Horas restantes: <strong id="horas-PTKNA">--</strong></p>
+      <p>Status: <strong id="status-PTKNA">--</strong></p>
+    </div>
 
-      <div class="card">
-        <h3>Aeronave PP-DHU</h3>
-        <p>Horas restantes: <strong id="horas-PPDHU">--</strong></p>
-        <p>Status: <strong id="status-PPDHU">--</strong></p>
-      </div>
+    <div class="card">
+      <h3>PP-DHU</h3>
+      <p>Horas restantes: <strong id="horas-PPDHU">--</strong></p>
+      <p>Status: <strong id="status-PPDHU">--</strong></p>
+    </div>
 
-      <div class="card">
-        <h3>Aeronave PP-ADR</h3>
-        <p>Horas restantes: <strong id="horas-PPADR">--</strong></p>
-        <p>Status: <strong id="status-PPADR">--</strong></p>
-      </div>
+    <div class="card">
+      <h3>PP-ADR</h3>
+      <p>Horas restantes: <strong id="horas-PPADR">--</strong></p>
+      <p>Status: <strong id="status-PPADR">--</strong></p>
+    </div>
   </div>
 
   <!-- GRÁFICO -->
@@ -127,4 +62,3 @@
 <script src="script.js"></script>
 </body>
 </html>
-
