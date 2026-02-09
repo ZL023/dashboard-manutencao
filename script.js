@@ -27,13 +27,23 @@ if (sessionStorage.getItem("logado")) {
 
 function csvParaArray(texto) {
   const linhas = texto.trim().split("\n");
-  const cabecalho = linhas.shift().split(",");
-  return linhas.map(l =>
-    Object.fromEntries(
-      l.split(",").map((v, i) => [cabecalho[i], v])
-    )
-  );
+
+  // Detecta separador (; ou ,)
+  const separador = linhas[0].includes(";") ? ";" : ",";
+
+  const cabecalho = linhas.shift().split(separador);
+
+  return linhas.map(linha => {
+    const valores = linha.split(separador);
+    const obj = {};
+    cabecalho.forEach((col, i) => {
+      // troca vírgula decimal por ponto
+      obj[col.trim()] = valores[i]?.replace(",", ".").trim();
+    });
+    return obj;
+  });
 }
+
 
 async function carregarDados() {
   const aero = await fetch(URL_AERONAVES).then(r => r.text());
@@ -94,3 +104,4 @@ function gerarGrafico(dados) {
     data: { labels, datasets }
   });
 }
+
