@@ -1,8 +1,8 @@
 // ================= CONFIGURAÇÕES =================
 const SENHA_FIXA = "manutencao123";
 
-const CSV_HISTORICO = "COLE_AQUI_O_LINK_CSV_HISTORICO";
-const CSV_STATUS    = "COLE_AQUI_O_LINK_CSV_STATUS";
+const CSV_HISTORICO = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTaUiXIXNFnZGpKFFXY3Agul8ZhqwFZsp6zeR_tzEI3iPDWc4gqMpJA2AmBSQXsSaaNiAyDQbxl54Gt/pub?gid=746527009&single=true&output=csv";
+const CSV_STATUS    = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTaUiXIXNFnZGpKFFXY3Agul8ZhqwFZsp6zeR_tzEI3iPDWc4gqMpJA2AmBSQXsSaaNiAyDQbxl54Gt/pub?gid=0&single=true&output=csv";
 // =================================================
 
 
@@ -129,3 +129,4 @@ function atualizarCards(csv) {
     statusEl.innerText = status;
   });
 }
+
