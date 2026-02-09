@@ -2,7 +2,7 @@
 const SENHA_FIXA = "manutencao123";
 
 const CSV_HISTORICO = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTaUiXIXNFnZGpKFFXY3Agul8ZhqwFZsp6zeR_tzEI3iPDWc4gqMpJA2AmBSQXsSaaNiAyDQbxl54Gt/pub?gid=746527009&single=true&output=csv";
-const CSV_STATUS    = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTaUiXIXNFnZGpKFFXY3Agul8ZhqwFZsp6zeR_tzEI3iPDWc4gqMpJA2AmBSQXsSaaNiAyDQbxl54Gt/pubhtml?gid=0&single=true";
+const CSV_STATUS    = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTaUiXIXNFnZGpKFFXY3Agul8ZhqwFZsp6zeR_tzEI3iPDWc4gqMpJA2AmBSQXsSaaNiAyDQbxl54Gt/pub?gid=0&single=true&output=csv";
 // =================================================
 
 
@@ -129,5 +129,6 @@ function atualizarCards(csv) {
     statusEl.innerText = status;
   });
 }
+
 
 
