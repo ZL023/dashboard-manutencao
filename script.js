@@ -89,19 +89,40 @@ function gerarCards(aeronaves) {
   });
 }
 
-function gerarGrafico(dados) {
-  const labels = dados.slice(1).map(l => l[0]);
-  const aeronaves = dados[0].slice(1);
+function gerarGrafico(textoCSV) {
+  const linhas = textoCSV.trim().split("\n");
 
-  const datasets = aeronaves.map((nome, i) => ({
-    label: nome,
-    data: dados.slice(1).map(l => parseFloat(l[i + 1])),
-    tension: 0.3
-  }));
+  const separador = linhas[0].includes(";") ? ";" : ",";
+
+  const cabecalho = linhas[0].split(separador).map(h => h.trim());
+  const dados = linhas.slice(1);
+
+  const labels = dados.map(l => l.split(separador)[0]);
+
+  const datasets = [];
+
+  for (let i = 1; i < cabecalho.length; i++) {
+    const valores = dados.map(l => {
+      const v = l.split(separador)[i];
+      if (!v) return null;
+      return parseFloat(v.replace(",", "."));
+    });
+
+    // só adiciona se tiver pelo menos um valor válido
+    if (valores.some(v => v !== null && !isNaN(v))) {
+      datasets.push({
+        label: cabecalho[i],
+        data: valores,
+        tension: 0.3
+      });
+    }
+  }
 
   new Chart(document.getElementById("graficoHoras"), {
     type: "line",
     data: { labels, datasets }
   });
 }
+
+
 
