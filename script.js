@@ -1,97 +1,42 @@
-// ===== CONFIGURAÇÕES =====
-const SENHA_CORRETA = "manutencao123";
+// ================= CONFIGURAÇÕES =================
+const SENHA_FIXA = "manutencao123";
 
-// Links CSV do Google Sheets
-const URL_AERONAVES = "https://docs.google.com/spreadsheets/d/1lCi9kySBYTIT51zTud04TjedX-mfK9FrXfVD9ch4GUY/gviz/tq?tqx=out:csv&sheet=Aeronaves";
-const URL_HISTORICO = "https://docs.google.com/spreadsheets/d/1lCi9kySBYTIT51zTud04TjedX-mfK9FrXfVD9ch4GUY/gviz/tq?tqx=out:csv&sheet=Historico_Horas";
+// CSVs publicados do Google Sheets
+const CSV_HISTORICO = "URL_DO_CSV_HISTORICO_AQUI";
+const CSV_STATUS = "URL_DO_CSV_STATUS_AQUI";
 
-// =========================
+// =================================================
 
-function login() {
+// LOGIN
+function verificarSenha() {
   const senha = document.getElementById("senha").value;
-  if (senha === SENHA_CORRETA) {
-    sessionStorage.setItem("logado", "true");
+
+  if (senha === SENHA_FIXA) {
     document.getElementById("login").style.display = "none";
     document.getElementById("dashboard").style.display = "block";
     carregarDados();
   } else {
-    document.getElementById("erro").innerText = "Senha incorreta";
+    alert("Senha incorreta");
   }
 }
 
-if (sessionStorage.getItem("logado")) {
-  document.getElementById("login").style.display = "none";
-  document.getElementById("dashboard").style.display = "block";
-  carregarDados();
-}
-
-function csvParaArray(texto) {
-  const linhas = texto.trim().split("\n");
-
-  // Detecta separador (; ou ,)
-  const separador = linhas[0].includes(";") ? ";" : ",";
-
-  const cabecalho = linhas.shift().split(separador);
-
-  return linhas.map(linha => {
-    const valores = linha.split(separador);
-    const obj = {};
-    cabecalho.forEach((col, i) => {
-      // troca vírgula decimal por ponto
-      obj[col.trim()] = valores[i]?.replace(",", ".").trim();
-    });
-    return obj;
-  });
-}
-
-
+// ================= CARREGAMENTO =================
 async function carregarDados() {
-  const aero = await fetch(URL_AERONAVES).then(r => r.text());
-  const hist = await fetch(URL_HISTORICO).then(r => r.text());
+  try {
+    const hist = await fetch(CSV_HISTORICO).then(r => r.text());
+    const status = await fetch(CSV_STATUS).then(r => r.text());
 
-  const aeronaves = csvParaArray(aero);
-  const historico = hist.trim().split("\n").map(l => l.split(","));
+    gerarGrafico(hist);
+    atualizarCards(status);
 
-  gerarCards(aeronaves);
-  gerarGrafico(historico);
+  } catch (erro) {
+    console.error("Erro ao carregar dados:", erro);
+  }
 }
 
-function gerarCards(aeronaves) {
-  const container = document.getElementById("cards");
-  container.innerHTML = "";
-
-  aeronaves.forEach(a => {
-    const h = parseFloat(a["Horas Totais"]);
-
-    const r50 = (parseFloat(a["Ultima_50h"]) + 50) - h;
-    const r100 = (parseFloat(a["Ultima_100h"]) + 100) - h;
-    const r200 = (parseFloat(a["Ultima_200h"]) + 200) - h;
-
-    let status = "OPERANTE", cor = "verde";
-    if (r50 < 0 || r100 < 0 || r200 < 0) {
-      status = "INOPERANTE";
-      cor = "vermelho";
-    } else if (r50 <= 10 || r100 <= 10 || r200 <= 10) {
-      status = "ATENÇÃO";
-      cor = "amarelo";
-    }
-
-    const card = document.createElement("div");
-    card.className = `card ${cor}`;
-    card.innerHTML = `
-      <h3>✈️ ${a["Matrícula"]}</h3>
-      <p class="status">${status}</p>
-      <p>50h: ${r50.toFixed(1)} h</p>
-      <p>100h: ${r100.toFixed(1)} h</p>
-      <p>200h: ${r200.toFixed(1)} h</p>
-    `;
-    container.appendChild(card);
-  });
-}
-
+// ================= GRÁFICO =================
 function gerarGrafico(textoCSV) {
   const linhas = textoCSV.trim().split("\n");
-
   const separador = linhas[0].includes(";") ? ";" : ",";
 
   const cabecalho = linhas[0].split(separador).map(h => h.trim());
@@ -108,7 +53,6 @@ function gerarGrafico(textoCSV) {
       return parseFloat(v.replace(",", "."));
     });
 
-    // só adiciona se tiver pelo menos um valor válido
     if (valores.some(v => v !== null && !isNaN(v))) {
       datasets.push({
         label: cabecalho[i],
@@ -118,11 +62,50 @@ function gerarGrafico(textoCSV) {
     }
   }
 
-  new Chart(document.getElementById("graficoHoras"), {
+  const canvas = document.getElementById("graficoHoras");
+  const ctx = canvas.getContext("2d");
+
+  if (window.grafico) {
+    window.grafico.destroy();
+  }
+
+  window.grafico = new Chart(ctx, {
     type: "line",
-    data: { labels, datasets }
+    data: {
+      labels,
+      datasets
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: {
+          position: "bottom"
+        }
+      }
+    }
   });
 }
 
+// ================= CARDS =================
+function atualizarCards(textoCSV) {
+  const linhas = textoCSV.trim().split("\n");
+  const separador = linhas[0].includes(";") ? ";" : ",";
 
+  const dados = linhas.slice(1);
 
+  dados.forEach(linha => {
+    const col = linha.split(separador);
+
+    const id = col[0];
+    const horasAtuais = parseFloat(col[2].replace(",", "."));
+    const proximaManut = parseFloat(col[3].replace(",", "."));
+    const status = col[4];
+
+    const restantes = proximaManut - horasAtuais;
+
+    document.getElementById(`horas-${id}`).innerText =
+      isNaN(restantes) ? "--" : restantes.toFixed(1) + " h";
+
+    document.getElementById(`status-${id}`).innerText = status;
+  });
+}
