@@ -81,26 +81,35 @@ function atualizarCards(csv) {
   const sep = linhas[0].includes(";") ? ";" : ",";
 
   linhas.slice(1).forEach(linha => {
+    if (!linha.trim()) return; // ignora linha vazia
+
     const c = linha.split(sep);
+    if (!c[0]) return; // ignora ID vazio
 
     const id = c[0].replace(/[^A-Za-z0-9]/g, "");
-    const horasAtuais = parseFloat(c[2].replace(",", "."));
-    const proxima = parseFloat(c[3].replace(",", "."));
-    const status = c[4];
 
-    const restantes = proxima - horasAtuais;
+    const horasAtuais = parseFloat((c[2] || "").replace(",", "."));
+    const proxima = parseFloat((c[3] || "").replace(",", "."));
+    const status = c[4] || "--";
 
     const horasEl = document.getElementById(`horas-${id}`);
     const statusEl = document.getElementById(`status-${id}`);
 
     if (!horasEl || !statusEl) {
-      console.warn(`Card não encontrado para ${id}`);
+      console.warn(`Card não encontrado para aeronave: ${id}`);
       return;
     }
 
-    horasEl.innerText = isNaN(restantes) ? "--" : restantes.toFixed(1) + " h";
+    if (isNaN(horasAtuais) || isNaN(proxima)) {
+      horasEl.innerText = "--";
+    } else {
+      horasEl.innerText = (proxima - horasAtuais).toFixed(1) + " h";
+    }
+
     statusEl.innerText = status;
   });
 }
+
+
 
 
