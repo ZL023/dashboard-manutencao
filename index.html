@@ -3,151 +3,254 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel Diagonal de Manutenção</title>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <title>Diagonal de Manutenção Aeronáutica</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/date-fns@2.29.3/index.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+
     <style>
-        body { font-family: 'Roboto', sans-serif; background-color: #f0f2f5; margin: 0; padding: 20px; }
-        .header { text-align: center; margin-bottom: 30px; color: #333; }
-        
-        /* Grid das Aeronaves */
-        .dashboard {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 20px;
-            max-width: 1200px;
-            margin: 0 auto;
+        :root {
+            --bg-color: #f0f2f5;
+            --card-bg: #ffffff;
+            --primary: #1a3a5a;
+            --success: #27ae60;
+            --warning: #f1c40f;
+            --danger: #e74c3c;
+            --text: #333;
         }
 
-        /* Cartão da Aeronave */
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: var(--bg-color); 
+            color: var(--text); 
+            margin: 0; 
+            padding: 20px; 
+        }
+
+        .container { max-width: 1200px; margin: 0 auto; }
+
+        header { 
+            text-align: center; 
+            padding: 20px 0; 
+            background: var(--primary); 
+            color: white; 
+            border-radius: 12px; 
+            margin-bottom: 30px; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        /* Grid de Cards */
+        .grid-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
         .card {
-            background: white;
+            background: var(--card-bg);
             border-radius: 12px;
             padding: 20px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            border-top: 6px solid #ccc;
             transition: transform 0.2s;
-            border-left: 5px solid #ccc; /* Cor padrão */
         }
-        .card:hover { transform: translateY(-5px); }
+        .card:hover { transform: translateY(-3px); }
 
-        .matricula { font-size: 1.5em; font-weight: bold; margin-bottom: 10px; display: flex; justify-content: space-between; }
-        .status-badge { font-size: 0.6em; padding: 4px 8px; border-radius: 4px; color: white; text-transform: uppercase; align-self: center;}
+        .card-header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 15px; 
+        }
+
+        .matricula { font-size: 1.4rem; font-weight: 700; color: var(--primary); }
         
-        .info-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.9em; color: #555; }
-        .destaque { font-weight: bold; color: #000; }
+        .status-badge {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: white;
+        }
 
-        /* Barra de Progresso Visual */
-        .progress-container { margin-top: 15px; }
-        .progress-bar { background-color: #e0e0e0; border-radius: 10px; height: 10px; overflow: hidden; }
-        .progress-fill { height: 100%; border-radius: 10px; transition: width 0.5s ease-in-out; }
-        .horas-restantes { text-align: center; font-size: 1.2em; font-weight: bold; margin-top: 5px; color: #333; }
+        .data-row { 
+            display: flex; 
+            justify-content: space-between; 
+            margin: 8px 0; 
+            font-size: 0.9rem; 
+            border-bottom: 1px dashed #eee;
+            padding-bottom: 4px;
+        }
 
-        /* Cores de Status Dinâmicas */
-        .status-voando { background-color: #28a745; }
-        .status-manutencao { background-color: #dc3545; }
-        .status-atencao { background-color: #ffc107; color: #333; }
+        /* Barra de Progresso */
+        .progress-wrapper { margin-top: 15px; text-align: center; }
+        .progress-container {
+            background: #eee;
+            height: 10px;
+            border-radius: 5px;
+            overflow: hidden;
+            margin: 8px 0;
+        }
+        .progress-fill { height: 100%; width: 0%; transition: width 1s ease-in-out; }
+        .hrs-restantes { font-size: 1.2rem; font-weight: 700; }
+
+        /* Área do Gráfico */
+        .chart-section {
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            height: 450px;
+        }
+
+        h2 { margin-top: 0; font-size: 1.2rem; color: var(--primary); }
+
+        /* Cores dinâmicas */
+        .bg-success { background-color: var(--success); }
+        .bg-warning { background-color: var(--warning); color: #333; }
+        .bg-danger { background-color: var(--danger); }
     </style>
 </head>
 <body>
 
-    <div class="header">
+<div class="container">
+    <header>
         <h1>Diagonal de Manutenção</h1>
-        <p>Acompanhamento em tempo real</p>
+        <p id="last-update">Carregando dados...</p>
+    </header>
+
+    <div id="cards-container" class="grid-cards">
+        </div>
+
+    <div class="chart-section">
+        <h2>Tendência de Disponibilidade (Últimos 30 dias)</h2>
+        <canvas id="canvasGrafico"></canvas>
     </div>
+</div>
 
-    <div id="app" class="dashboard">
-        <p style="text-align:center; width:100%">Carregando dados...</p>
-    </div>
+<script>
+    // ==========================================
+    // CONFIGURAÇÃO: COLE SEUS LINKS CSV AQUI
+    // ==========================================
+    const URL_FROTA = 'LINK_VALORES_FROTA'; 
+    const URL_HISTORICO = 'LINK_VALORES_HISTORICO';
+    // ==========================================
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
-    <script>
-        // --- CONFIGURAÇÃO ---
-        // COLE O LINK DO SEU CSV PUBLICADO AQUI EMBAIXO:
-        const sheetURL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTaUiXIXNFnZGpKFFXY3Agul8ZhqwFZsp6zeR_tzEI3iPDWc4gqMpJA2AmBSQXsSaaNiAyDQbxl54Gt/pub?output=csv'; 
+    let chartInstance = null;
 
-        function init() {
-            Papa.parse(sheetURL, {
-                download: true,
-                header: true,
-                complete: function(results) {
-                    renderDashboard(results.data);
-                },
-                error: function(err) {
-                    console.error("Erro ao ler planilha:", err);
-                    document.getElementById('app').innerHTML = '<p>Erro ao carregar dados. Verifique o link.</p>';
-                }
-            });
-        }
+    async function fetchData() {
+        // Busca dados da Frota
+        Papa.parse(URL_FROTA, {
+            download: true,
+            header: true,
+            complete: (results) => {
+                renderCards(results.data);
+                document.getElementById('last-update').innerText = "Atualizado em: " + new Date().toLocaleString();
+            }
+        });
 
-        function renderDashboard(data) {
-            const container = document.getElementById('app');
-            container.innerHTML = ''; // Limpa o loading
+        // Busca dados do Histórico
+        Papa.parse(URL_HISTORICO, {
+            download: true,
+            header: true,
+            complete: (results) => {
+                renderChart(results.data);
+            }
+        });
+    }
 
-            data.forEach(aviao => {
-                // Validação simples para pular linhas vazias
-                if(!aviao.Matricula) return;
+    function renderCards(data) {
+        const container = document.getElementById('cards-container');
+        container.innerHTML = '';
 
-                const horasAtuais = parseFloat(aviao.HorasAtuais);
-                const proximaInspecao = parseFloat(aviao.ProximaInspecao);
-                const horasRestantes = (proximaInspecao - horasAtuais).toFixed(1);
-                
-                // Lógica de Cores e Status
-                let corStatus = '#ccc'; // Padrão
-                let classStatus = 'status-atencao';
-                
-                // Define cor baseada no texto do Status na planilha
-                const statusTexto = aviao.Status.toLowerCase().trim();
-                if(statusTexto.includes('voando')) {
-                    corStatus = '#28a745'; // Verde
-                    classStatus = 'status-voando';
-                } else if (statusTexto.includes('manuten') || statusTexto.includes('aog')) {
-                    corStatus = '#dc3545'; // Vermelho
-                    classStatus = 'status-manutencao';
-                }
+        data.forEach(item => {
+            if (!item.Matricula) return;
 
-                // Cálculo visual da barra (assumindo ciclo de 50h para visualização)
-                let porcentagemUso = 100 - ((horasRestantes / 50) * 100);
-                if (porcentagemUso < 0) porcentagemUso = 0; // Proteção visual
-                if (porcentagemUso > 100) porcentagemUso = 100;
+            const tsn = parseFloat(item.HorasAtuais) || 0;
+            const prox = parseFloat(item.ProximaInspecao) || 0;
+            const restantes = (prox - tsn).toFixed(1);
+            const status = item.Status || 'Indisponível';
 
-                // Cria o HTML do cartão
-                const card = document.createElement('div');
-                card.className = 'card';
-                card.style.borderLeftColor = corStatus;
-                
-                card.innerHTML = `
-                    <div class="matricula">
-                        ${aviao.Matricula}
-                        <span class="status-badge ${classStatus}" style="background-color:${corStatus}">${aviao.Status}</span>
+            // Lógica de cores
+            let cor = 'var(--success)';
+            let classe = 'bg-success';
+
+            if (status.toLowerCase().includes('manuten') || status.toLowerCase().includes('aog')) {
+                cor = 'var(--danger)';
+                classe = 'bg-danger';
+            } else if (restantes <= 5) {
+                cor = 'var(--danger)';
+                classe = 'bg-danger';
+            } else if (restantes <= 15) {
+                cor = 'var(--warning)';
+                classe = 'bg-warning';
+            }
+
+            // Cálculo da barra (baseado em ciclo de 50h)
+            let pct = (restantes / 50) * 100;
+            if (pct > 100) pct = 100;
+            if (pct < 0) pct = 0;
+
+            const cardHtml = `
+                <div class="card" style="border-top-color: ${cor}">
+                    <div class="card-header">
+                        <span class="matricula">${item.Matricula}</span>
+                        <span class="status-badge ${classe}">${status}</span>
                     </div>
-                    <div class="info-row">
-                        <span>Horas Totais (TSN):</span>
-                        <span class="destaque">${horasAtuais} h</span>
-                    </div>
-                    <div class="info-row">
-                        <span>Próxima Inspeção:</span>
-                        <span class="destaque">${proximaInspecao} h</span>
-                    </div>
+                    <div class="data-row"><span>Horas Totais (TSN):</span> <b>${tsn}h</b></div>
+                    <div class="data-row"><span>Próxima Inspeção:</span> <b>${prox}h</b></div>
                     
-                    <div class="progress-container">
-                        <div class="horas-restantes" style="color:${horasRestantes < 10 ? '#dc3545' : '#333'}">
-                            ${horasRestantes}h Restantes
-                        </div>
-                        <div class="progress-bar">
-                            <div class="progress-fill" style="width: ${porcentagemUso}%; background-color: ${corStatus}"></div>
+                    <div class="progress-wrapper">
+                        <div class="hrs-restantes" style="color: ${cor}">${restantes}h</div>
+                        <small>restantes para manutenção</small>
+                        <div class="progress-container">
+                            <div class="progress-fill ${classe}" style="width: ${pct}%"></div>
                         </div>
                     </div>
-                `;
-                container.appendChild(card);
-            });
-        }
+                </div>
+            `;
+            container.innerHTML += cardHtml;
+        });
+    }
 
-        // Se o usuário não colocou o link, avisa
-        if(sheetURL === 'COLOQUE_SEU_LINK_DO_GOOGLE_SHEETS_AQUI') {
-             document.getElementById('app').innerHTML = '<p style="text-align:center; color:red">Você precisa editar o arquivo HTML e colar o link do seu CSV na variável sheetURL.</p>';
-        } else {
-            init();
-        }
-    </script>
-</body>
-</html>
+    function renderChart(historyData) {
+        if (!historyData || historyData.length === 0) return;
 
+        const ctx = document.getElementById('canvasGrafico').getContext('2d');
+        const colunas = Object.keys(historyData[0]).filter(key => key !== 'Data');
+        const cores = ['#1a3a5a', '#27ae60', '#f1c40f', '#e74c3c', '#8e44ad', '#2c3e50'];
+
+        const dataLimite = new Date();
+        dataLimite.setDate(dataLimite.getDate() - 30);
+
+        const datasets = colunas.map((matricula, index) => {
+            const pontos = historyData
+                .map(row => {
+                    const dataPonto = new Date(row.Data);
+                    const valor = parseFloat(row[matricula]);
+                    return { x: dataPonto, y: valor };
+                })
+                .filter(ponto => !isNaN(ponto.y) && ponto.x >= dataLimite)
+                .sort((a, b) => a.x - b.x);
+
+            return {
+                label: matricula,
+                data: pontos,
+                borderColor: cores[index % cores.length],
+                backgroundColor: cores[index % cores.length],
+                borderWidth: 3,
+                tension: 0.3,
+                pointRadius: 4
+            };
+        });
+
+        if (chartInstance) chartInstance.destroy();
+
+        chartInstance = new Chart(ctx, {
+            type: 'line',
+            data: { datasets
