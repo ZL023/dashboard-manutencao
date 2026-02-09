@@ -1,34 +1,152 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <title>Dashboard de Manutenção</title>
-  <link rel="stylesheet" href="style.css">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel Diagonal de Manutenção</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Roboto', sans-serif; background-color: #f0f2f5; margin: 0; padding: 20px; }
+        .header { text-align: center; margin-bottom: 30px; color: #333; }
+        
+        /* Grid das Aeronaves */
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Cartão da Aeronave */
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+            border-left: 5px solid #ccc; /* Cor padrão */
+        }
+        .card:hover { transform: translateY(-5px); }
+
+        .matricula { font-size: 1.5em; font-weight: bold; margin-bottom: 10px; display: flex; justify-content: space-between; }
+        .status-badge { font-size: 0.6em; padding: 4px 8px; border-radius: 4px; color: white; text-transform: uppercase; align-self: center;}
+        
+        .info-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.9em; color: #555; }
+        .destaque { font-weight: bold; color: #000; }
+
+        /* Barra de Progresso Visual */
+        .progress-container { margin-top: 15px; }
+        .progress-bar { background-color: #e0e0e0; border-radius: 10px; height: 10px; overflow: hidden; }
+        .progress-fill { height: 100%; border-radius: 10px; transition: width 0.5s ease-in-out; }
+        .horas-restantes { text-align: center; font-size: 1.2em; font-weight: bold; margin-top: 5px; color: #333; }
+
+        /* Cores de Status Dinâmicas */
+        .status-voando { background-color: #28a745; }
+        .status-manutencao { background-color: #dc3545; }
+        .status-atencao { background-color: #ffc107; color: #333; }
+    </style>
 </head>
 <body>
 
-<div id="login">
-  <div class="login-box">
-    <h2>Acesso Restrito</h2>
-    <input type="password" id="senha" placeholder="Senha">
-    <button onclick="login()">Entrar</button>
-  </div>
-</div>
+    <div class="header">
+        <h1>Diagonal de Manutenção</h1>
+        <p>Acompanhamento em tempo real</p>
+    </div>
 
-<div id="dashboard">
-  <h1>Dashboard de Manutenção</h1>
+    <div id="app" class="dashboard">
+        <p style="text-align:center; width:100%">Carregando dados...</p>
+    </div>
 
-  <div class="cards">
-    <div class="card"><h3>PT-KNJ</h3><p>Horas: <strong id="PT-KNJ-h">--</strong></p><p>Status: <strong id="PT-KNJ-s">--</strong></p></div>
-    <div class="card"><h3>PT-KNA</h3><p>Horas: <strong id="PT-KNA-h">--</strong></p><p>Status: <strong id="PT-KNA-s">--</strong></p></div>
-    <div class="card"><h3>PP-DHU</h3><p>Horas: <strong id="PP-DHU-h">--</strong></p><p>Status: <strong id="PP-DHU-s">--</strong></p></div>
-    <div class="card"><h3>PP-ADR</h3><p>Horas: <strong id="PP-ADR-h">--</strong></p><p>Status: <strong id="PP-ADR-s">--</strong></p></div>
-  </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <script>
+        // --- CONFIGURAÇÃO ---
+        // COLE O LINK DO SEU CSV PUBLICADO AQUI EMBAIXO:
+        const sheetURL = 'COLOQUE_SEU_LINK_DO_GOOGLE_SHEETS_AQUI'; 
 
-  <canvas id="grafico"></canvas>
-</div>
+        function init() {
+            Papa.parse(sheetURL, {
+                download: true,
+                header: true,
+                complete: function(results) {
+                    renderDashboard(results.data);
+                },
+                error: function(err) {
+                    console.error("Erro ao ler planilha:", err);
+                    document.getElementById('app').innerHTML = '<p>Erro ao carregar dados. Verifique o link.</p>';
+                }
+            });
+        }
 
-<script src="script.js"></script>
+        function renderDashboard(data) {
+            const container = document.getElementById('app');
+            container.innerHTML = ''; // Limpa o loading
+
+            data.forEach(aviao => {
+                // Validação simples para pular linhas vazias
+                if(!aviao.Matricula) return;
+
+                const horasAtuais = parseFloat(aviao.HorasAtuais);
+                const proximaInspecao = parseFloat(aviao.ProximaInspecao);
+                const horasRestantes = (proximaInspecao - horasAtuais).toFixed(1);
+                
+                // Lógica de Cores e Status
+                let corStatus = '#ccc'; // Padrão
+                let classStatus = 'status-atencao';
+                
+                // Define cor baseada no texto do Status na planilha
+                const statusTexto = aviao.Status.toLowerCase().trim();
+                if(statusTexto.includes('voando')) {
+                    corStatus = '#28a745'; // Verde
+                    classStatus = 'status-voando';
+                } else if (statusTexto.includes('manuten') || statusTexto.includes('aog')) {
+                    corStatus = '#dc3545'; // Vermelho
+                    classStatus = 'status-manutencao';
+                }
+
+                // Cálculo visual da barra (assumindo ciclo de 50h para visualização)
+                let porcentagemUso = 100 - ((horasRestantes / 50) * 100);
+                if (porcentagemUso < 0) porcentagemUso = 0; // Proteção visual
+                if (porcentagemUso > 100) porcentagemUso = 100;
+
+                // Cria o HTML do cartão
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.style.borderLeftColor = corStatus;
+                
+                card.innerHTML = `
+                    <div class="matricula">
+                        ${aviao.Matricula}
+                        <span class="status-badge ${classStatus}" style="background-color:${corStatus}">${aviao.Status}</span>
+                    </div>
+                    <div class="info-row">
+                        <span>Horas Totais (TSN):</span>
+                        <span class="destaque">${horasAtuais} h</span>
+                    </div>
+                    <div class="info-row">
+                        <span>Próxima Inspeção:</span>
+                        <span class="destaque">${proximaInspecao} h</span>
+                    </div>
+                    
+                    <div class="progress-container">
+                        <div class="horas-restantes" style="color:${horasRestantes < 10 ? '#dc3545' : '#333'}">
+                            ${horasRestantes}h Restantes
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${porcentagemUso}%; background-color: ${corStatus}"></div>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // Se o usuário não colocou o link, avisa
+        if(sheetURL === 'COLOQUE_SEU_LINK_DO_GOOGLE_SHEETS_AQUI') {
+             document.getElementById('app').innerHTML = '<p style="text-align:center; color:red">Você precisa editar o arquivo HTML e colar o link do seu CSV na variável sheetURL.</p>';
+        } else {
+            init();
+        }
+    </script>
 </body>
 </html>
