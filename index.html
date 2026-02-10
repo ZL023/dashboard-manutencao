@@ -113,10 +113,27 @@
         new Chart(ctx, {
             type: 'line',
             data: { datasets },
+            // Localize este trecho no final do seu script:
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                scales: { x: { type: 'time', time: { unit: 'day' } } }
+                scales: { 
+                    x: { 
+                        type: 'time', 
+                        time: { unit: 'day', displayFormats: { day: 'dd/MM' } },
+                        title: { display: true, text: 'Data' }
+                    }, 
+                    y: { 
+                        beginAtZero: false, // <-- ALTERE AQUI para false
+                        title: { display: true, text: 'Horas Restantes' },
+                        ticks: {
+                            precision: 1 // Garante que mostre as decimais das horas
+                        }
+                    } 
+                },
+                plugins: {
+                    legend: { position: 'top' }
+                }
             }
         });
     }
@@ -125,3 +142,4 @@
 </script>
 </body>
 </html>
+
