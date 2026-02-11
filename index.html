@@ -17,6 +17,18 @@
         .card { background: white; padding: 15px; border-radius: 8px; border-top: 5px solid #ccc; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         .chart-box { background: white; padding: 20px; margin-top: 20px; border-radius: 8px; height: 400px; }
         .error-msg { color: red; font-weight: bold; text-align: center; padding: 20px; background: #ffdada; border-radius: 8px; display: none; }
+        
+        /* Estilo para a nova etiqueta de inspeção */
+        .badge {
+            background-color: #e2e8f0;
+            color: #1a3a5a;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            font-weight: bold;
+            display: inline-block;
+            margin-top: 5px;
+        }
     </style>
 </head>
 <body>
@@ -38,7 +50,7 @@
 
 <script>
     // ==========================================
-    // CONFIGURAÇÃO: COLE SEUS LINKS CSV AQUI
+    // LINKS CSV
     var URL_FROTA = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTaUiXIXNFnZGpKFFXY3Agul8ZhqwFZsp6zeR_tzEI3iPDWc4gqMpJA2AmBSQXsSaaNiAyDQbxl54Gt/pub?gid=0&single=true&output=csv';
     var URL_HISTORICO = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTaUiXIXNFnZGpKFFXY3Agul8ZhqwFZsp6zeR_tzEI3iPDWc4gqMpJA2AmBSQXsSaaNiAyDQbxl54Gt/pub?gid=746527009&single=true&output=csv';
     // ==========================================
@@ -51,49 +63,75 @@
     }
 
     function carregarDados() {
-        if (URL_FROTA.includes('COLE_AQUI')) {
-            mostrarErro("Você esqueceu de colar o link do CSV no código HTML!");
-            return;
-        }
-
-        // Carregar Frota
+        // 1. Carrega a Frota
         Papa.parse(URL_FROTA, {
             download: true,
             header: true,
-            complete: function(results) {
-                if (results.data.length > 0) {
-                    renderizarCards(results.data);
-                    document.getElementById('status-conexao').innerText = "Sincronizado: " + new Date().toLocaleTimeString();
-                } else {
-                    mostrarErro("Planilha de Frota vazia ou link inválido.");
-                }
-            },
-            error: function(err) {
-                mostrarErro("Bloqueio de segurança ou link offline. Tente abrir no Firefox ou subir para um site.");
-            }
-        });
+            complete: function(resFrota) {
+                
+                // 2. Carrega o Histórico (dentro do sucesso da Frota)
+                Papa.parse(URL_HISTORICO, {
+                    download: true,
+                    header: true,
+                    complete: function(resHistorico) {
+                        // 3. Processa tudo junto
+                        if (resFrota.data.length > 0 && resHistorico.data.length > 0) {
+                            processarInterface(resFrota.data, resHistorico.data);
+                            document.getElementById('status-conexao').innerText = "Atualizado: " + new Date().toLocaleTimeString();
+                        } else {
+                            mostrarErro("Dados vazios recebidos das planilhas.");
+                        }
+                    },
+                    error: function(err) { mostrarErro("Erro ao carregar Histórico."); }
+                });
 
-        // Carregar Histórico
-        Papa.parse(URL_HISTORICO, {
-            download: true,
-            header: true,
-            complete: function(results) {
-                desenharGrafico(results.data);
-            }
+            },
+            error: function(err) { mostrarErro("Erro ao carregar Frota."); }
         });
     }
 
-    function renderizarCards(dados) {
+    function processarInterface(frota, historico) {
+        renderizarCards(frota, historico);
+        desenharGrafico(historico);
+    }
+
+    function renderizarCards(frota, historico) {
         const lista = document.getElementById('cards-container');
         lista.innerHTML = '';
-        dados.forEach(aviao => {
+
+        // Limpa linhas vazias do histórico e pega a última linha válida (dados mais recentes)
+        const histValido = historico.filter(h => h.Data && h.Data.trim() !== '');
+        const ultimoRegistro = histValido[histValido.length - 1];
+
+        frota.forEach(aviao => {
             if (!aviao.Matricula) return;
-            const res = (parseFloat(aviao.ProximaInspecao) - parseFloat(aviao.HorasAtuais)).toFixed(1);
+
+            let horasRestantes = 0;
+            
+            // LÓGICA NOVA:
+            // Tenta pegar o valor diretamente da última linha do histórico usando a matrícula como chave
+            if (ultimoRegistro && ultimoRegistro[aviao.Matricula] !== undefined) {
+                horasRestantes = parseFloat(ultimoRegistro[aviao.Matricula]);
+            } else {
+                // Fallback: Se não achar no histórico, calcula pelo método antigo (segurança)
+                console.warn(`Aeronave ${aviao.Matricula} não encontrada no histórico recente.`);
+                horasRestantes = parseFloat(aviao.ProximaInspecao) - parseFloat(aviao.HorasAtuais);
+            }
+
+            // Formata para 1 casa decimal
+            const resFormatado = horasRestantes.toFixed(1);
+            
+            // Garante que TipoInspecao exista, se não, deixa vazio
+            const tipoInsp = aviao.TipoInspecao ? aviao.TipoInspecao : '--';
+
             lista.innerHTML += `
-                <div class="card" style="border-top-color: ${res < 10 ? '#e74c3c' : '#27ae60'}">
-                    <h3>${aviao.Matricula}</h3>
+                <div class="card" style="border-top-color: ${horasRestantes < 10 ? '#e74c3c' : '#27ae60'}">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <h3>${aviao.Matricula}</h3>
+                        <span class="badge">${tipoInsp}</span>
+                    </div>
                     <p>Status: <b>${aviao.Status}</b></p>
-                    <p>Restante: <b style="font-size:1.2em">${res}h</b></p>
+                    <p>Restante: <b style="font-size:1.4em">${resFormatado}h</b></p>
                 </div>
             `;
         });
@@ -113,7 +151,6 @@
         new Chart(ctx, {
             type: 'line',
             data: { datasets },
-            // Localize este trecho no final do seu script:
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
@@ -124,11 +161,8 @@
                         title: { display: true, text: 'Data' }
                     }, 
                     y: { 
-                        beginAtZero: false, // <-- ALTERE AQUI para false
-                        title: { display: true, text: 'Horas Restantes' },
-                        ticks: {
-                            precision: 1 // Garante que mostre as decimais das horas
-                        }
+                        beginAtZero: false,
+                        title: { display: true, text: 'Horas Restantes' }
                     } 
                 },
                 plugins: {
@@ -142,4 +176,3 @@
 </script>
 </body>
 </html>
-
