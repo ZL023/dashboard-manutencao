@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Diagonal de Manutenção</title>
+    <title>Acesso - Diagonal de Manutenção</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
@@ -10,75 +10,66 @@
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 
     <style>
-        body { font-family: 'Inter', sans-serif; background: #f0f2f5; padding: 20px; }
+        body { font-family: 'Inter', sans-serif; background: #f0f2f5; padding: 20px; margin: 0; }
+        
+        /* TELA DE LOGIN */
+        #login-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #1a3a5a; display: flex; align-items: center; justify-content: center;
+            z-index: 9999; color: white;
+        }
+        .login-box {
+            background: white; padding: 40px; border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2); text-align: center; color: #333;
+            max-width: 350px; width: 90%;
+        }
+        .login-box h2 { margin-bottom: 20px; color: #1a3a5a; }
+        .login-box input {
+            width: 100%; padding: 12px; margin-bottom: 15px;
+            border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box;
+            font-size: 16px; text-align: center;
+        }
+        .login-box button {
+            width: 100%; padding: 12px; background: #27ae60; color: white;
+            border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 16px;
+        }
+        .login-box button:hover { background: #219150; }
+        #msg-erro { color: #e74c3c; font-size: 0.9em; margin-top: 10px; display: none; }
+
+        /* CONTEÚDO DO DASHBOARD (OCULTO INICIALMENTE) */
+        #dashboard-content { display: none; }
+
+        /* ESTILOS DA DASHBOARD (MANTIDOS) */
         .container { max-width: 1100px; margin: 0 auto; }
         header { background: #1a3a5a; color: white; padding: 20px; text-align: center; border-radius: 8px; margin-bottom: 20px; }
         .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
-        
-        /* CARD ESTILIZADO */
-        .card { 
-            background: white; 
-            padding: 20px; 
-            border-radius: 12px; 
-            border-top: 6px solid #ccc;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05); 
-            display: flex;
-            flex-direction: column;
-        }
-
-        .card h3 { margin: 0 0 15px 0; color: #1a3a5a; font-size: 1.5em; text-align: left; }
-
-        .card-info-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 25px;
-            color: #64748b;
-            font-size: 0.95em;
-        }
-
-        .card-center {
-            text-align: center;
-            margin-top: auto;
-            padding-bottom: 10px;
-        }
-
-        .hours-text {
-            font-size: 2.4em;
-            font-weight: bold;
-            color: #1e293b;
-            line-height: 1;
-        }
+        .card { background: white; padding: 20px; border-radius: 12px; border-top: 6px solid #ccc; box-shadow: 0 4px 6px rgba(0,0,0,0.05); display: flex; flex-direction: column; }
+        .card h3 { margin: 0 0 15px 0; color: #1a3a5a; font-size: 1.5em; }
+        .card-info-row { display: flex; justify-content: space-between; margin-bottom: 25px; color: #64748b; font-size: 0.95em; }
+        .card-center { text-align: center; margin-top: auto; padding-bottom: 10px; }
+        .hours-text { font-size: 2.4em; font-weight: bold; color: #1e293b; line-height: 1; }
         .hours-label { font-size: 0.85em; color: #94a3b8; margin-bottom: 5px; display: block; font-weight: 600; }
-
-        /* BARRA DE PROGRESSO */
-        .progress-bg {
-            background-color: #e2e8f0;
-            height: 12px;
-            border-radius: 10px;
-            width: 100%;
-            margin-top: 15px;
-            overflow: hidden;
-        }
-        
-        .progress-fill {
-            height: 100%;
-            border-radius: 10px;
-            transition: width 0.8s ease-out, background-color 0.8s ease;
-        }
-
+        .progress-bg { background-color: #e2e8f0; height: 12px; border-radius: 10px; width: 100%; margin-top: 15px; overflow: hidden; }
+        .progress-fill { height: 100%; border-radius: 10px; transition: width 0.8s ease-out, background-color 0.8s ease; }
         .chart-box { background: white; padding: 20px; margin-top: 20px; border-radius: 8px; height: 400px; }
-        .error-msg { color: red; font-weight: bold; text-align: center; padding: 20px; background: #ffdada; border-radius: 8px; display: none; }
     </style>
 </head>
 <body>
 
-<div class="container">
+<div id="login-overlay">
+    <div class="login-box">
+        <h2>Acesso Restrito</h2>
+        <input type="password" id="senha-input" placeholder="Digite a senha..." onkeypress="checarEnter(event)">
+        <button onclick="validarAcesso()">Entrar</button>
+        <p id="msg-erro">Senha incorreta!</p>
+    </div>
+</div>
+
+<div id="dashboard-content" class="container">
     <header>
         <h1>Diagonal de Manutenção</h1>
-        <div id="status-conexao">Conectando ao Google Sheets...</div>
+        <div id="status-conexao">Sincronizando dados...</div>
     </header>
-
-    <div id="erro-tela" class="error-msg"></div>
 
     <div id="cards-container" class="grid"></div>
 
@@ -88,13 +79,29 @@
 </div>
 
 <script>
+    // ==========================================
+    // CONFIGURAÇÃO
+    var SENHA_MESTRA = "tonystark"; // <--- ALTERE SUA SENHA AQUI
     var URL_FROTA = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTaUiXIXNFnZGpKFFXY3Agul8ZhqwFZsp6zeR_tzEI3iPDWc4gqMpJA2AmBSQXsSaaNiAyDQbxl54Gt/pub?gid=0&single=true&output=csv';
     var URL_HISTORICO = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTaUiXIXNFnZGpKFFXY3Agul8ZhqwFZsp6zeR_tzEI3iPDWc4gqMpJA2AmBSQXsSaaNiAyDQbxl54Gt/pub?gid=746527009&single=true&output=csv';
+    // ==========================================
 
-    function mostrarErro(msg) {
-        const div = document.getElementById('erro-tela');
-        div.style.display = 'block';
-        div.innerHTML = "⚠️ " + msg;
+    function checarEnter(e) {
+        if (e.key === 'Enter') validarAcesso();
+    }
+
+    function validarAcesso() {
+        const senhaDigitada = document.getElementById('senha-input').value;
+        const erro = document.getElementById('msg-erro');
+        
+        if (senhaDigitada === SENHA_MESTRA) {
+            document.getElementById('login-overlay').style.display = 'none';
+            document.getElementById('dashboard-content').style.display = 'block';
+            carregarDados(); // Só carrega os dados após a senha
+        } else {
+            erro.style.display = 'block';
+            document.getElementById('senha-input').value = '';
+        }
     }
 
     function carregarDados() {
@@ -122,14 +129,12 @@
     function renderizarCards(frota, historico) {
         const lista = document.getElementById('cards-container');
         lista.innerHTML = '';
-
         const histValido = historico.filter(h => h.Data && h.Data.trim() !== '');
         const ultimoRegistro = histValido[histValido.length - 1];
 
         frota.forEach(aviao => {
             if (!aviao.Matricula) return;
 
-            // 1. Horas restantes do Histórico
             let horasRestantes = 0;
             if (ultimoRegistro && ultimoRegistro[aviao.Matricula] !== undefined) {
                 horasRestantes = parseFloat(ultimoRegistro[aviao.Matricula]);
@@ -137,31 +142,24 @@
                 horasRestantes = parseFloat(aviao.ProximaInspecao) - parseFloat(aviao.HorasAtuais);
             }
 
-            // 2. Lógica da Barra: Sempre baseada em um ciclo de 50h
             const CICLO_MANUTENCAO = 50;
             let porcentagem = (horasRestantes / CICLO_MANUTENCAO) * 100;
-            
-            // Limites de segurança (0% a 100%)
             if (porcentagem > 100) porcentagem = 100;
             if (porcentagem < 0) porcentagem = 0;
 
-            // 3. Cor dinâmica (Verde 120 -> Vermelho 0)
             const corHue = Math.floor(porcentagem * 1.2); 
             const corFinal = `hsl(${corHue}, 75%, 45%)`;
 
             lista.innerHTML += `
                 <div class="card" style="border-top-color: ${corFinal}">
                     <h3>${aviao.Matricula}</h3>
-                    
                     <div class="card-info-row">
                         <span>Status: <b style="color:#1e293b">${aviao.Status}</b></span>
                         <span>Próxima: <b style="color:#1e293b">${aviao.TipoInspecao || '--'}</b></span>
                     </div>
-
                     <div class="card-center">
                         <span class="hours-label">HORAS RESTANTES</span>
                         <div class="hours-text">${horasRestantes.toFixed(1)}h</div>
-                        
                         <div class="progress-bg">
                             <div class="progress-fill" style="width: ${porcentagem}%; background-color: ${corFinal};"></div>
                         </div>
@@ -193,8 +191,6 @@
             }
         });
     }
-
-    window.onload = carregarDados;
 </script>
 </body>
 </html>
