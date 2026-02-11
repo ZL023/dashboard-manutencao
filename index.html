@@ -13,22 +13,62 @@
         body { font-family: 'Inter', sans-serif; background: #f0f2f5; padding: 20px; }
         .container { max-width: 1100px; margin: 0 auto; }
         header { background: #1a3a5a; color: white; padding: 20px; text-align: center; border-radius: 8px; margin-bottom: 20px; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; }
-        .card { background: white; padding: 15px; border-radius: 8px; border-top: 5px solid #ccc; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+        
+        /* CARD ESTILIZADO */
+        .card { 
+            background: white; 
+            padding: 20px; 
+            border-radius: 12px; 
+            border-top: 6px solid #ccc; /* Cor padrão, será sobrescrita via JS */
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05); 
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .card h3 { margin: 0 0 15px 0; color: #1a3a5a; font-size: 1.5em; }
+
+        .card-info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            color: #64748b;
+            font-size: 0.9em;
+            font-weight: 600;
+        }
+
+        .card-center {
+            text-align: center;
+            margin-top: auto;
+        }
+
+        .hours-text {
+            font-size: 2.2em;
+            font-weight: bold;
+            color: #1e293b;
+            line-height: 1;
+        }
+        .hours-label { font-size: 0.8em; color: #94a3b8; margin-bottom: 8px; display: block; }
+
+        /* BARRA DE PROGRESSO */
+        .progress-bg {
+            background-color: #e2e8f0;
+            height: 10px;
+            border-radius: 10px;
+            width: 100%;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            border-radius: 10px;
+            transition: width 1s ease-in-out, background-color 1s ease;
+        }
+
         .chart-box { background: white; padding: 20px; margin-top: 20px; border-radius: 8px; height: 400px; }
         .error-msg { color: red; font-weight: bold; text-align: center; padding: 20px; background: #ffdada; border-radius: 8px; display: none; }
-        
-        /* Estilo para a nova etiqueta de inspeção */
-        .badge {
-            background-color: #e2e8f0;
-            color: #1a3a5a;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 0.85em;
-            font-weight: bold;
-            display: inline-block;
-            margin-top: 5px;
-        }
     </style>
 </head>
 <body>
@@ -63,30 +103,21 @@
     }
 
     function carregarDados() {
-        // 1. Carrega a Frota
         Papa.parse(URL_FROTA, {
-            download: true,
-            header: true,
+            download: true, header: true,
             complete: function(resFrota) {
-                
-                // 2. Carrega o Histórico (dentro do sucesso da Frota)
                 Papa.parse(URL_HISTORICO, {
-                    download: true,
-                    header: true,
+                    download: true, header: true,
                     complete: function(resHistorico) {
-                        // 3. Processa tudo junto
                         if (resFrota.data.length > 0 && resHistorico.data.length > 0) {
                             processarInterface(resFrota.data, resHistorico.data);
                             document.getElementById('status-conexao').innerText = "Atualizado: " + new Date().toLocaleTimeString();
-                        } else {
-                            mostrarErro("Dados vazios recebidos das planilhas.");
-                        }
+                        } else { mostrarErro("Dados vazios."); }
                     },
-                    error: function(err) { mostrarErro("Erro ao carregar Histórico."); }
+                    error: function() { mostrarErro("Erro Histórico."); }
                 });
-
             },
-            error: function(err) { mostrarErro("Erro ao carregar Frota."); }
+            error: function() { mostrarErro("Erro Frota."); }
         });
     }
 
@@ -99,39 +130,51 @@
         const lista = document.getElementById('cards-container');
         lista.innerHTML = '';
 
-        // Limpa linhas vazias do histórico e pega a última linha válida (dados mais recentes)
         const histValido = historico.filter(h => h.Data && h.Data.trim() !== '');
         const ultimoRegistro = histValido[histValido.length - 1];
 
         frota.forEach(aviao => {
             if (!aviao.Matricula) return;
 
+            // 1. Pega horas restantes
             let horasRestantes = 0;
-            
-            // LÓGICA NOVA:
-            // Tenta pegar o valor diretamente da última linha do histórico usando a matrícula como chave
             if (ultimoRegistro && ultimoRegistro[aviao.Matricula] !== undefined) {
                 horasRestantes = parseFloat(ultimoRegistro[aviao.Matricula]);
             } else {
-                // Fallback: Se não achar no histórico, calcula pelo método antigo (segurança)
-                console.warn(`Aeronave ${aviao.Matricula} não encontrada no histórico recente.`);
                 horasRestantes = parseFloat(aviao.ProximaInspecao) - parseFloat(aviao.HorasAtuais);
             }
 
-            // Formata para 1 casa decimal
-            const resFormatado = horasRestantes.toFixed(1);
+            // 2. Define o TOTAL da inspeção para calcular a % (ex: tira "h" de "50h" -> vira 50)
+            const tipoInspRaw = aviao.TipoInspecao ? aviao.TipoInspecao : '50h'; // Padrão 50h se vazio
+            const totalInspecao = parseFloat(tipoInspRaw.replace(/\D/g,'')) || 50; // Extrai só números
             
-            // Garante que TipoInspecao exista, se não, deixa vazio
-            const tipoInsp = aviao.TipoInspecao ? aviao.TipoInspecao : '--';
+            // 3. Calcula Porcentagem (Trava entre 0 e 100%)
+            let porcentagem = (horasRestantes / totalInspecao) * 100;
+            if (porcentagem > 100) porcentagem = 100;
+            if (porcentagem < 0) porcentagem = 0;
+
+            // 4. Calcula a Cor (HSL: 120 = Verde, 0 = Vermelho)
+            // Multiplicamos por 1.2 para que 100% seja verde puro e 0% vermelho puro
+            const corHue = Math.floor(porcentagem * 1.2); 
+            const corFinal = `hsl(${corHue}, 70%, 45%)`;
 
             lista.innerHTML += `
-                <div class="card" style="border-top-color: ${horasRestantes < 10 ? '#e74c3c' : '#27ae60'}">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <h3>${aviao.Matricula}</h3>
-                        <span class="badge">${tipoInsp}</span>
+                <div class="card" style="border-top-color: ${corFinal}">
+                    <h3>${aviao.Matricula}</h3>
+                    
+                    <div class="card-info-row">
+                        <span>Status: <b style="color:#333">${aviao.Status}</b></span>
+                        <span>Tipo: <b style="color:#333">${tipoInspRaw}</b></span>
                     </div>
-                    <p>Status: <b>${aviao.Status}</b></p>
-                    <p>Restante: <b style="font-size:1.4em">${resFormatado}h</b></p>
+
+                    <div class="card-center">
+                        <span class="hours-label">RESTANTE</span>
+                        <div class="hours-text">${horasRestantes.toFixed(1)}h</div>
+                        
+                        <div class="progress-bg">
+                            <div class="progress-fill" style="width: ${porcentagem}%; background-color: ${corFinal};"></div>
+                        </div>
+                    </div>
                 </div>
             `;
         });
@@ -152,22 +195,12 @@
             type: 'line',
             data: { datasets },
             options: {
-                responsive: true,
-                maintainAspectRatio: false,
+                responsive: true, maintainAspectRatio: false,
                 scales: { 
-                    x: { 
-                        type: 'time', 
-                        time: { unit: 'day', displayFormats: { day: 'dd/MM' } },
-                        title: { display: true, text: 'Data' }
-                    }, 
-                    y: { 
-                        beginAtZero: false,
-                        title: { display: true, text: 'Horas Restantes' }
-                    } 
+                    x: { type: 'time', time: { unit: 'day', displayFormats: { day: 'dd/MM' } }, title: { display: true, text: 'Data' } }, 
+                    y: { beginAtZero: false, title: { display: true, text: 'Horas Restantes' } } 
                 },
-                plugins: {
-                    legend: { position: 'top' }
-                }
+                plugins: { legend: { position: 'top' } }
             }
         });
     }
